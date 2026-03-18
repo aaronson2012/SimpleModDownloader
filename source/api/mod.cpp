@@ -146,16 +146,32 @@ void ModList::updatePage() {
     }
 
     if(mod_json.empty()) {
+        brls::Logger::error("Mod list request returned empty JSON for title '{}' ({})", game.getTitle(), game.getTid());
+        return;
+    }
+
+    if (!mod_json.is_object() || !mod_json.contains("_aRecords") || !mod_json.at("_aRecords").is_array()) {
+        brls::Logger::error("Mod list response missing _aRecords for title '{}' ({})", game.getTitle(), game.getTid());
         return;
     }
 
     mods.clear();
     
-    for(auto mod : mod_json.at("_aRecords")) {
+    for(const auto& mod : mod_json.at("_aRecords")) {
+        if (!mod.is_object() || !mod.contains("_sName") || !mod.at("_sName").is_string() || !mod.contains("_idRow") || !mod.at("_idRow").is_number_integer()) {
+            brls::Logger::error("Skipping malformed mod record for title '{}' ({})", game.getTitle(), game.getTid());
+            continue;
+        }
+
         std::string name = mod.at("_sName");
         int ID = mod.at("_idRow");
         
-        std::string author = mod.at("_aSubmitter").at("_sName");
+        std::string author = "Unknown";
+        if (mod.contains("_aSubmitter") && mod.at("_aSubmitter").is_object() && mod.at("_aSubmitter").contains("_sName") && mod.at("_aSubmitter").at("_sName").is_string()) {
+            author = mod.at("_aSubmitter").at("_sName");
+        } else {
+            brls::Logger::error("Mod record {} for title '{}' is missing submitter metadata", ID, game.getTitle());
+        }
 
         std::vector<std::string> images;
 

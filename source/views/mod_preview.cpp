@@ -38,8 +38,13 @@ ModPreview::ModPreview(Mod& mod, std::vector<unsigned char>& bannerBuffer): mod(
     this->setFocusable(false);
     scrolling->setFocusable(true);
     
-    banner->setImageFromMem(bannerBuffer.data(), bannerBuffer.size());
-    banner->setHeight(200);
+    if (!bannerBuffer.empty()) {
+        banner->setImageFromMem(bannerBuffer.data(), bannerBuffer.size());
+        banner->setHeight(200);
+    } else {
+        brls::Logger::error("No banner image data available for mod '{}'", this->mod.getName());
+        banner->setHeight(0);
+    }
     
     image_overlay->setColor(nvgRGBA(100, 100, 100, 0.8*255));
     title->setText(this->mod.getName());

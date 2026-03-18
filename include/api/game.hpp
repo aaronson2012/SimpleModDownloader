@@ -28,6 +28,7 @@ class Game {
         brls::Image* getIcon() { return icon; }
         std::string getBannerUrl() { return bannerURL; }
         std::vector<Category> getCategories() { return categories; }
+        std::string getSelectedTitle() { return selectedTitle; }
     private:
         void loadCategories();
         void searchGame();
@@ -37,6 +38,7 @@ class Game {
         nlohmann::json json_categories;
 
         std::string title;
+        std::string selectedTitle;
         std::string bannerURL;
         int gamebananaID = 0;
         std::string tid;

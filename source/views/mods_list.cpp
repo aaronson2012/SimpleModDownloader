@@ -59,7 +59,13 @@ ModData::ModData(Game game): game(game)
 {
     //modList = new ModList(game);
     modList = std::make_unique<ModList>(game);
-    net::downloadImage(game.getBannerUrl(), bannerBuffer);
+    if (!game.getBannerUrl().empty()) {
+        net::downloadImage(game.getBannerUrl(), bannerBuffer);
+    } else {
+        brls::Logger::error("No banner URL available for title '{}' ({})", game.getTitle(), game.getTid());
+    }
+
+    brls::Logger::debug("Banner buffer size for tid={} title='{}' is {} bytes", game.getTid(), game.getTitle(), bannerBuffer.size());
     brls::Logger::debug("{} mods found", modList->getMods().size());
 
 
@@ -120,6 +126,15 @@ ModListTab::ModListTab(Game& game) {
     
     this->registerAction("menu/mods/categories"_i18n, brls::ControllerButton::BUTTON_X, [this, game](brls::View* view) mutable {
         brls::Logger::debug("Filters button pressed");
+
+        if (game.getCategories().empty()) {
+            brls::Logger::error("No categories available for title '{}' ({})", game.getTitle(), game.getTid());
+            auto dialog = new brls::Dialog("menu/notify/request_error"_i18n);
+            dialog->addButton("hints/ok"_i18n, []() {});
+            dialog->open();
+            return true;
+        }
+
         int selected = this->modData->getModList()->getCategory().getIndex();
 
         std::vector<std::string> categoriesNames = {};

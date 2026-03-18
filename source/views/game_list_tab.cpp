@@ -30,7 +30,25 @@ brls::RecyclerCell* GameData::cellForRow(brls::RecyclerFrame* recycler, brls::In
 
 void GameData::didSelectRowAt(brls::RecyclerFrame* recycler, brls::IndexPath indexPath)
 { 
-    Game game(games[indexPath.row].first, games[indexPath.row].second);
+    const std::string& selectedTitle = games[indexPath.row].first;
+    const std::string& titleId = games[indexPath.row].second;
+    std::string sanitizedTitle = utils::sanitizeTitle(selectedTitle);
+
+    brls::Logger::debug(
+        "User selected installed title tid={} raw='{}' sanitized='{}'",
+        titleId,
+        utils::debugStringPreview(selectedTitle),
+        utils::debugStringPreview(sanitizedTitle));
+
+    if (!utils::isValidGameTitle(sanitizedTitle)) {
+        brls::Logger::error("Aborting lookup for malformed selected title tid={} sanitized='{}'", titleId, utils::debugStringPreview(sanitizedTitle));
+        auto dialog = new brls::Dialog("menu/notify/request_error"_i18n);
+        dialog->addButton("hints/ok"_i18n, []() {});
+        dialog->open();
+        return;
+    }
+
+    Game game(sanitizedTitle, titleId);
     if(game.getGamebananaID() == 0) {
         auto dialog = new brls::Dialog("menu/notify/no_games_gamebanana"_i18n);
         dialog->addButton("hints/ok"_i18n, []() {});

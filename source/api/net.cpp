@@ -1,5 +1,6 @@
 #include "api/net.hpp"
 #include "utils/progress_event.hpp"
+#include "utils/utils.hpp"
 
 #include <curl/curl.h>
 #include <borealis.hpp>
@@ -15,6 +16,11 @@ namespace net {
     }
 
     nlohmann::json downloadRequest(std::string url) {
+        if (url.empty()) {
+            brls::Logger::error("Skipping request because URL is empty");
+            return nlohmann::json();
+        }
+
         auto curl = curl_easy_init();
 
         brls::Logger::debug("Requesting: " + url);
@@ -35,13 +41,28 @@ namespace net {
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
         auto res = curl_easy_perform(curl);
+        long responseCode = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 
         nlohmann::json json;
 
         if(res != CURLE_OK) {
             brls::Logger::error("Failed to perform request: " + std::string(curl_easy_strerror(res)));
         } else {
-            json = nlohmann::json::parse(response);
+            try {
+                if (response.empty()) {
+                    brls::Logger::error("Received empty response body from {} (HTTP {})", url, responseCode);
+                } else {
+                    json = nlohmann::json::parse(response);
+                }
+            } catch (const nlohmann::json::parse_error& e) {
+                brls::Logger::error(
+                    "Failed to parse JSON from {} (HTTP {}): {} | response='{}'",
+                    url,
+                    responseCode,
+                    e.what(),
+                    utils::debugStringPreview(response, 120));
+            }
         }
 
         curl_easy_cleanup(curl);
@@ -60,6 +81,11 @@ namespace net {
     }
 
     void downloadImage(const std::string& url, std::vector<unsigned char>& buffer) {
+        if (url.empty()) {
+            brls::Logger::error("Skipping image download because URL is empty");
+            return;
+        }
+
         auto curl = curl_easy_init();
 
         brls::Logger::debug("Downloading image: {}", url);
